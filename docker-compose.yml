@@ -13,7 +13,7 @@ services:
       - no-new-privileges:true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=256m
-      - /home/pi/.pi:rw,nosuid,size=256m
+      - /home/pi/.pi:rw,nosuid,uid=10001,gid=10001,mode=0700,size=256m
     pids_limit: 512
     mem_limit: 4g
     cpus: 2.0
@@ -25,4 +25,4 @@ services:
       PI_DISABLE_BASH_TOOL: "0"
     volumes:
       - ${REPO_PATH:?Set REPO_PATH to an absolute repository path}:/workspace:rw
-      - ${PI_AUTH_FILE:-./.secure-pi/auth.json}:/home/pi/.pi/agent/auth.json:rw
+      - ${PI_AUTH_FILE:-./.secure-pi/auth.json}:/opt/pi-secure/auth.json:rw

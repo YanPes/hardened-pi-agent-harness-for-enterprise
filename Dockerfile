@@ -10,6 +10,7 @@ RUN npm install -g "@earendil-works/pi-coding-agent@${PI_VERSION}"
 
 RUN useradd --create-home --uid 10001 --shell /bin/bash pi \
     && mkdir -p /opt/pi-secure /workspace \
+    && touch /opt/pi-secure/auth.json \
     && chown -R pi:pi /opt/pi-secure /workspace /home/pi
 
 COPY config/settings.json /opt/pi-secure/settings.json

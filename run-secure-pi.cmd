@@ -73,10 +73,10 @@ docker run --rm -it ^
   --workdir /workspace ^
   --user 10001:10001 ^
   --mount "type=bind,src=%REPO_PATH%,dst=/workspace" ^
-  --mount "type=bind,src=%PI_AUTH_FILE%,dst=/home/pi/.pi/agent/auth.json" ^
+  --mount "type=bind,src=%PI_AUTH_FILE%,dst=/opt/pi-secure/auth.json" ^
   --read-only ^
   --tmpfs /tmp:rw,noexec,nosuid,size=256m ^
-  --tmpfs /home/pi/.pi:rw,nosuid,size=256m ^
+  --tmpfs /home/pi/.pi:rw,nosuid,uid=10001,gid=10001,mode=0700,size=256m ^
   --cap-drop ALL ^
   --security-opt no-new-privileges:true ^
   --pids-limit %PI_PIDS_LIMIT% ^

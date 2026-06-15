@@ -2,7 +2,10 @@
 set -euo pipefail
 
 PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-${HOME}/.pi/agent}"
+PI_AUTH_PATH="${PI_AUTH_PATH:-/opt/pi-secure/auth.json}"
 mkdir -p "${PI_AGENT_DIR}"
+
+ln -sfn "${PI_AUTH_PATH}" "${PI_AGENT_DIR}/auth.json"
 
 if [[ ! -f "${PI_AGENT_DIR}/settings.json" ]]; then
   cp /opt/pi-secure/settings.json "${PI_AGENT_DIR}/settings.json"
