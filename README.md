@@ -29,7 +29,6 @@ Hardened Docker wrapper for `pi` (https://pi.dev/) suitable for zero-trust enter
 - `docker/entrypoint.sh` - secure defaults + startup config bootstrap
 - `config/settings.json` - telemetry-off base settings
 - `run-secure-pi.sh` - all-in-one Linux/macOS wrapper (auto-build + run)
-- `run-secure-pi.cmd` - all-in-one Windows CMD wrapper (auto-build + run)
 - `docker-compose.yml` - compose alternative
 
 ## Getting started
@@ -115,15 +114,14 @@ Or pass a path explicitly:
 Pass normal Pi arguments after the repo path:
 
 ```bash
-./run-secure-pi.sh /<path-to-repo>/-p "summarize this codebase"
-./run-secure-pi.sh /<path-to-repo>/"find dead code"
+./run-secure-pi.sh /<path-to-repo> -p "summarize this codebase"
+./run-secure-pi.sh /<path-to-repo> "find dead code"
 ```
 
-### Windows (CMD)
+Or run from inside the target repo and omit the path:
 
-```cmd
-run-secure-pi.cmd C:\workspace\<namespace>\<repo-location>
-run-secure-pi.cmd C:\workspace\<namespace>\<repo-location> -p "summarize this codebase"
+```bash
+./run-secure-pi.sh -p "summarize this codebase"
 ```
 
 ## Security toggles
@@ -140,10 +138,22 @@ PI_ALLOW_CONTEXT_FILES=0 ./run-secure-pi.sh /<path-to-repo>/
 PI_DISABLE_BASH_TOOL=1 ./run-secure-pi.sh /<path-to-repo>/
 ```
 
-- Fully cut network (no model calls either):
+- Disable outbound network (default allows network):
 
 ```bash
 PI_DOCKER_NETWORK_NONE=1 ./run-secure-pi.sh /<path-to-repo>/
+```
+
+- Force workspace read-only (default is writable):
+
+```bash
+PI_WORKSPACE_READONLY=1 ./run-secure-pi.sh /<path-to-repo>/
+```
+
+- Override built-in Pi version pin:
+
+```bash
+PI_VERSION=0.42.0 ./run-secure-pi.sh /<path-to-repo>/
 ```
 
 ## Compose usage
@@ -171,6 +181,6 @@ docker compose run --rm pi -p "review this repository"
 ## Notes for enterprise security review
 
 1. This setup blocks Pi's own telemetry/update endpoints via config/env (`PI_OFFLINE`, `PI_SKIP_VERSION_CHECK`, `PI_TELEMETRY=0`).
-2. Model-provider traffic (for example GitHub Copilot or internal gateways) is still allowed unless you set `--network none`.
+2. Model-provider traffic is allowed by default; disable it with `PI_DOCKER_NETWORK_NONE=1` when needed.
 3. For strict egress control, combine this with your enterprise proxy/firewall egress allowlist.
 4. Credentials are intentionally persisted in a host auth file for usability (one-time `/login`), while keeping them out of images.
