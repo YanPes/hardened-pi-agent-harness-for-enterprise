@@ -3,9 +3,18 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IMAGE="${PI_SECURE_IMAGE:-secure-pi:latest}"
-PI_VERSION="${PI_VERSION:-latest}"
 REBUILD="${PI_REBUILD:-0}"
 PI_AUTH_FILE="${PI_AUTH_FILE:-${HOME}/.secure-pi/auth.json}"
+
+resolve_path() {
+  if command -v realpath >/dev/null 2>&1; then
+    realpath "$1"
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1"
+  else
+    echo "$1"
+  fi
+}
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   cat <<'EOF'
@@ -18,15 +27,18 @@ Examples:
 
 Env toggles:
   PI_REBUILD=1              Rebuild image before run
-  PI_VERSION=0.42.0         Pin pi version at build time
-  PI_DOCKER_NETWORK_NONE=1  Disable network completely
+  PI_VERSION=0.42.0         Override default pi version at build time
+  PI_DOCKER_NETWORK_NONE=1  Disable outbound network completely
+  PI_WORKSPACE_READONLY=1   Mount workspace read-only
   PI_DISABLE_BASH_TOOL=1    Disable bash tool in pi
   PI_ALLOW_CONTEXT_FILES=0  Disable AGENTS.md / CLAUDE.md loading
 EOF
   exit 0
 fi
 
-if [[ $# -eq 0 ]]; then
+PI_VERSION="${PI_VERSION:-0.42.0}"
+
+if [[ $# -eq 0 || "${1}" == -* ]]; then
   REPO_PATH="$(pwd)"
 else
   REPO_PATH="$1"
@@ -38,15 +50,15 @@ if [[ ! -d "${REPO_PATH}" ]]; then
   exit 1
 fi
 
-REPO_PATH="$(realpath "${REPO_PATH}")"
+REPO_PATH="$(resolve_path "${REPO_PATH}")"
 
 AUTH_DIR="$(dirname "${PI_AUTH_FILE}")"
 mkdir -p "${AUTH_DIR}"
 if [[ ! -f "${PI_AUTH_FILE}" ]]; then
   printf '{}\n' >"${PI_AUTH_FILE}"
 fi
-chmod a+rw "${PI_AUTH_FILE}" 2>/dev/null || true
-PI_AUTH_FILE="$(realpath "${PI_AUTH_FILE}")"
+chmod 600 "${PI_AUTH_FILE}" 2>/dev/null || true
+PI_AUTH_FILE="$(resolve_path "${PI_AUTH_FILE}")"
 
 if [[ "${REBUILD}" == "1" ]] || ! docker image inspect "${IMAGE}" >/dev/null 2>&1; then
   echo "[secure-pi] Building image ${IMAGE} (PI_VERSION=${PI_VERSION})"
@@ -55,13 +67,18 @@ fi
 
 DOCKER_NETWORK_ARGS=()
 if [[ "${PI_DOCKER_NETWORK_NONE:-0}" == "1" ]]; then
-  DOCKER_NETWORK_ARGS+=(--network none)
+  DOCKER_NETWORK_ARGS=(--network none)
+fi
+
+WORKSPACE_MOUNT="type=bind,src=${REPO_PATH},dst=/workspace"
+if [[ "${PI_WORKSPACE_READONLY:-0}" == "1" ]]; then
+  WORKSPACE_MOUNT="type=bind,src=${REPO_PATH},dst=/workspace,readonly"
 fi
 
 docker run --rm -it \
   --workdir /workspace \
   --user 10001:10001 \
-  --mount "type=bind,src=${REPO_PATH},dst=/workspace" \
+  --mount "${WORKSPACE_MOUNT}" \
   --mount "type=bind,src=${PI_AUTH_FILE},dst=/opt/pi-secure/auth.json" \
   --read-only \
   --tmpfs /tmp:rw,noexec,nosuid,size=256m \
