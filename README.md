@@ -20,7 +20,7 @@ Hardened Docker wrapper for `pi` (https://pi.dev/) suitable for zero-trust enter
 
 > **Intentional UX/Security tradeoffs:**
 >
-> - `Auth` is persisted by default so developers only need to run `/login` once. Only the auth token file is persisted; the rest of `~/.pi` stays ephemeral via `tmpfs` (temporary in-memory file-system).
+> - `Auth` is persisted by default so developers only need to run `/login` once. The auth token file at `~/.pi/agent/auth.json` is bind-mounted from the host; the rest of `~/.pi` stays ephemeral via `tmpfs` (temporary in-memory file-system).
 > - `Skills` and `prompt templates` are intentionally enabled for developer experience.
 
 ## Files

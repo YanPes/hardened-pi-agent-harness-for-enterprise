@@ -79,10 +79,10 @@ docker run --rm -it \
   --workdir /workspace \
   --user 10001:10001 \
   --mount "${WORKSPACE_MOUNT}" \
-  --mount "type=bind,src=${PI_AUTH_FILE},dst=/opt/pi-secure/auth.json" \
   --read-only \
   --tmpfs /tmp:rw,noexec,nosuid,size=256m \
   --tmpfs /home/pi/.pi:rw,nosuid,uid=10001,gid=10001,mode=0700,size=256m \
+  --tmpfs /home/pi/.pi/agent:rw,nosuid,uid=10001,gid=10001,mode=0700,size=256m \
   --cap-drop ALL \
   --security-opt no-new-privileges:true \
   --pids-limit "${PI_PIDS_LIMIT:-512}" \
@@ -93,6 +93,7 @@ docker run --rm -it \
   -e PI_TELEMETRY=0 \
   -e PI_ALLOW_CONTEXT_FILES="${PI_ALLOW_CONTEXT_FILES:-1}" \
   -e PI_DISABLE_BASH_TOOL="${PI_DISABLE_BASH_TOOL:-0}" \
+  --mount "type=bind,src=${PI_AUTH_FILE},dst=/home/pi/.pi/agent/auth.json" \
   "${DOCKER_NETWORK_ARGS[@]}" \
   "${IMAGE}" \
   "$@"
