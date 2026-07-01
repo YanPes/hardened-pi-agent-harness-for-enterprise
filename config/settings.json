@@ -1,6 +1,6 @@
 {
   "enableInstallTelemetry": false,
-  "packages": ["git:github.com/makoit/pi-forgeflow@v0.1.1"],
+  "packages": ["git:github.com/makoit/pi-forgeflow"],
   "extensions": [],
   "skills": [],
   "prompts": [],
