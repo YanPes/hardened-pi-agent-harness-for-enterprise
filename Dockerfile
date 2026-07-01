@@ -19,7 +19,7 @@ USER pi
 RUN npm install --prefix /opt/pi "@earendil-works/pi-coding-agent@${PI_VERSION}"
 WORKDIR /workspace
 
-ENV PATH="/opt/pi/bin:$PATH" \
+ENV PATH="/opt/pi/node_modules/.bin:$PATH" \
     HOME=/home/pi \
     PI_CODING_AGENT_DIR=/home/pi/.pi/agent \
     PI_OFFLINE=1 \
