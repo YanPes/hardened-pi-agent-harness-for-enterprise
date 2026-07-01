@@ -2,26 +2,19 @@
 set -euo pipefail
 
 PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-${HOME}/.pi/agent}"
-PI_AUTH_FILE="${PI_AUTH_FILE:-/run/pi-auth.json}"
 PI_AUTH_TARGET="${PI_AGENT_DIR}/auth.json"
+PI_AUTH_JSON_BASE64="${PI_AUTH_JSON_BASE64:-}"
+
 mkdir -p "${PI_AGENT_DIR}"
 
-if [[ -f "${PI_AUTH_FILE}" ]]; then
-  cp -f "${PI_AUTH_FILE}" "${PI_AUTH_TARGET}"
+if [[ ! -s "${PI_AUTH_TARGET}" && -n "${PI_AUTH_JSON_BASE64}" ]]; then
+  printf '%s' "${PI_AUTH_JSON_BASE64}" | base64 -d > "${PI_AUTH_TARGET}"
+  chown pi:pi "${PI_AUTH_TARGET}"
 fi
 
 if [[ ! -f "${PI_AGENT_DIR}/settings.json" ]]; then
   cp /opt/pi-secure/settings.json "${PI_AGENT_DIR}/settings.json"
 fi
-
-sync_auth_file() {
-  if [[ -f "${PI_AUTH_TARGET}" ]]; then
-    cp -f "${PI_AUTH_TARGET}" "${PI_AUTH_FILE}"
-    chmod 600 "${PI_AUTH_FILE}" 2>/dev/null || true
-  fi
-}
-
-trap sync_auth_file EXIT
 
 export PI_OFFLINE="${PI_OFFLINE:-1}"
 export PI_SKIP_VERSION_CHECK="${PI_SKIP_VERSION_CHECK:-1}"
@@ -40,6 +33,10 @@ if [[ "${PI_DISABLE_BASH_TOOL:-0}" == "1" ]]; then
   SECURE_FLAGS+=(--tools read,edit,write,grep,find,ls)
 fi
 
-pi "${SECURE_FLAGS[@]}" "$@"
-status=$?
+if pi "${SECURE_FLAGS[@]}" "$@"; then
+  status=0
+else
+  status=$?
+fi
+
 exit "${status}"

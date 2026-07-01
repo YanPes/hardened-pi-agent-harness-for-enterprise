@@ -3,12 +3,13 @@ FROM node:22-bookworm-slim@sha256:a149cd71dccd68704a07d4e4ca3e610c27301852b0f556
 ARG PI_VERSION=0.80.2
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends bash ca-certificates git openssh-client \
-    && rm -rf /var/lib/apt/lists/*
+  && apt-get install -y --no-install-recommends bash ca-certificates git gosu openssh-client fd-find ripgrep \
+  && ln -s /usr/bin/fdfind /usr/local/bin/fd \
+  && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --create-home --uid 10001 --shell /bin/bash pi \
-    && mkdir -p /opt/pi /opt/pi-secure /workspace \
-    && chown -R pi:pi /opt/pi /opt/pi-secure /workspace /home/pi
+  && mkdir -p /opt/pi /opt/pi-secure /workspace /home/pi/.pi /home/pi/.pi/agent \
+  && chown -R pi:pi /opt/pi /opt/pi-secure /workspace /home/pi
 
 COPY config/settings.json /opt/pi-secure/settings.json
 COPY docker/entrypoint.sh /usr/local/bin/pi-secure-entrypoint
@@ -18,12 +19,13 @@ USER pi
 RUN npm install --prefix /opt/pi "@earendil-works/pi-coding-agent@${PI_VERSION}"
 WORKDIR /workspace
 
-ENV PATH="/opt/pi/bin:$PATH" \
-    HOME=/home/pi \
-    PI_CODING_AGENT_DIR=/home/pi/.pi/agent \
-    PI_OFFLINE=1 \
-    PI_SKIP_VERSION_CHECK=1 \
-    PI_TELEMETRY=0
+ENV PATH="/opt/pi/node_modules/.bin:/opt/pi/bin:$PATH" \
+  HOME=/home/pi \
+  PI_CODING_AGENT_DIR=/home/pi/.pi/agent \
+  PI_OFFLINE=1 \
+  PI_SKIP_VERSION_CHECK=1 \
+  PI_TELEMETRY=0
 
+USER root
 ENTRYPOINT ["pi-secure-entrypoint"]
 CMD []

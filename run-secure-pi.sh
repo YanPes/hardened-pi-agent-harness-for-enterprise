@@ -53,15 +53,14 @@ fi
 REPO_PATH="$(resolve_path "${REPO_PATH}")"
 
 HOST_PI_AUTH_FILE="${PI_AUTH_FILE:-${HOME}/.pi/agent/auth.json}"
-CONTAINER_PI_AUTH_FILE="/run/pi-auth.json"
 
 AUTH_DIR="$(dirname "${HOST_PI_AUTH_FILE}")"
 mkdir -p "${AUTH_DIR}"
 if [[ ! -f "${HOST_PI_AUTH_FILE}" ]]; then
   printf '{}\n' >"${HOST_PI_AUTH_FILE}"
 fi
-chmod 600 "${HOST_PI_AUTH_FILE}" 2>/dev/null || true
 HOST_PI_AUTH_FILE="$(resolve_path "${HOST_PI_AUTH_FILE}")"
+PI_AUTH_JSON_BASE64="$(base64 < "${HOST_PI_AUTH_FILE}" | tr -d '\n')"
 
 if [[ "${REBUILD}" == "1" ]] || ! docker image inspect "${IMAGE}" >/dev/null 2>&1; then
   echo "[secure-pi] Building image ${IMAGE} (PI_VERSION=${PI_VERSION})"
@@ -85,8 +84,7 @@ docker run --rm -it \
   --read-only \
   --tmpfs /tmp:rw,noexec,nosuid,size=256m \
   --tmpfs /run:rw,noexec,nosuid,uid=10001,gid=10001,mode=0700,size=4m \
-  --tmpfs /home/pi/.pi:rw,nosuid,uid=10001,gid=10001,mode=0700,size=256m \
-  --tmpfs /home/pi/.pi/agent:rw,nosuid,uid=10001,gid=10001,mode=0700,size=256m \
+  --mount type=volume,src=secure-pi-agent,dst=/home/pi/.pi \
   --cap-drop ALL \
   --security-opt no-new-privileges:true \
   --pids-limit "${PI_PIDS_LIMIT:-512}" \
@@ -97,8 +95,7 @@ docker run --rm -it \
   -e PI_TELEMETRY=0 \
   -e PI_ALLOW_CONTEXT_FILES="${PI_ALLOW_CONTEXT_FILES:-1}" \
   -e PI_DISABLE_BASH_TOOL="${PI_DISABLE_BASH_TOOL:-0}" \
-  -e PI_AUTH_FILE="${CONTAINER_PI_AUTH_FILE}" \
-  --mount "type=bind,src=${HOST_PI_AUTH_FILE},dst=${CONTAINER_PI_AUTH_FILE}" \
+  -e PI_AUTH_JSON_BASE64="${PI_AUTH_JSON_BASE64}" \
   "${DOCKER_NETWORK_ARGS[@]}" \
   "${IMAGE}" \
   "$@"

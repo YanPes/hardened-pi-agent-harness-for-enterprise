@@ -20,7 +20,7 @@ Hardened Docker wrapper for `pi` (https://pi.dev/) suitable for zero-trust enter
 
 > **Intentional UX/Security tradeoffs:**
 >
-> - `Auth` is shared with default `pi` by default so developers only need to run `/login` once. The host auth token file stays at `~/.pi/agent/auth.json`, but inside the container it is staged via `/run/pi-auth.json` and copied into ephemeral `~/.pi/agent/auth.json`; the rest of `~/.pi` stays ephemeral via `tmpfs` (temporary in-memory file-system).
+> - `~/.pi` state (including auth) is persisted in dedicated Docker volume (`secure-pi-agent`) for plug-and-play startup without host file permission tuning. On `run-secure-pi.sh`, existing host auth at `~/.pi/agent/auth.json` is imported automatically on first run when available.
 > - `Skills` and `prompt templates` are intentionally enabled for developer experience.
 
 ## Files
@@ -158,14 +158,9 @@ PI_VERSION=0.42.0 ./run-secure-pi.sh /<path-to-repo>/
 
 ## Compose usage
 
-Shared login uses the same auth file as default `pi`:
+Pi state (including auth) is persisted automatically in Docker volume `secure-pi-agent`.
 
-```bash
-mkdir -p ~/.pi/agent
-printf '{}\n' > ~/.pi/agent/auth.json
-```
-
-Then run:
+Run:
 
 ```bash
 export REPO_PATH=/absolute/path/to/repo
@@ -183,4 +178,4 @@ docker compose run --rm pi -p "review this repository"
 1. This setup blocks Pi's own telemetry/update endpoints via config/env (`PI_OFFLINE`, `PI_SKIP_VERSION_CHECK`, `PI_TELEMETRY=0`).
 2. Model-provider traffic is allowed by default; disable it with `PI_DOCKER_NETWORK_NONE=1` when needed.
 3. For strict egress control, combine this with your enterprise proxy/firewall egress allowlist.
-4. Credentials are intentionally persisted in the host `~/.pi/agent/auth.json` file for usability (one-time `/login`), while keeping them out of images.
+4. Credentials are intentionally persisted in Docker volume `secure-pi-agent` for usability (one-time `/login`), while keeping them out of images.
