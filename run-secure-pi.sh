@@ -30,6 +30,7 @@ Env toggles:
   PI_VERSION=0.80.2         Override default pi version at build time
   PI_DOCKER_NETWORK_NONE=1  Disable outbound network completely
   PI_WORKSPACE_READONLY=1   Mount workspace read-only
+  PI_DISABLE_EXTENSIONS=1   Disable packages/extensions loaded from settings.json
   PI_DISABLE_BASH_TOOL=1    Disable bash tool in pi
   PI_ALLOW_CONTEXT_FILES=0  Disable AGENTS.md / CLAUDE.md loading
 EOF
@@ -60,7 +61,7 @@ if [[ ! -f "${HOST_PI_AUTH_FILE}" ]]; then
   printf '{}\n' >"${HOST_PI_AUTH_FILE}"
 fi
 HOST_PI_AUTH_FILE="$(resolve_path "${HOST_PI_AUTH_FILE}")"
-PI_AUTH_JSON_BASE64="$(base64 < "${HOST_PI_AUTH_FILE}" | tr -d '\n')"
+PI_AUTH_JSON_BASE64="$(base64 <"${HOST_PI_AUTH_FILE}" | tr -d '\n')"
 
 if [[ "${REBUILD}" == "1" ]] || ! docker image inspect "${IMAGE}" >/dev/null 2>&1; then
   echo "[secure-pi] Building image ${IMAGE} (PI_VERSION=${PI_VERSION})"

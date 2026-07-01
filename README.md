@@ -15,12 +15,14 @@ Hardened Docker wrapper for `pi` (https://pi.dev/) suitable for zero-trust enter
   - `PI_TELEMETRY=0`
   - `PI_SKIP_VERSION_CHECK=1`
   - `PI_OFFLINE=1` (disables startup network checks)
-- **Untrusted dynamic resources disabled by default**:
-  - `--no-extensions --no-themes`
+- **Untrusted dynamic resources mostly enabled for UX**:
+  - extensions allowed by default so `packages` in `settings.json` can load
+  - themes still disabled by default
 
 > **Intentional UX/Security tradeoffs:**
 >
 > - `~/.pi` state (including auth) is persisted in dedicated Docker volume (`secure-pi-agent`) for plug-and-play startup without host file permission tuning. On `run-secure-pi.sh`, existing host auth at `~/.pi/agent/auth.json` is imported automatically on first run when available.
+> - Extensions are allowed by default so curated packages from `settings.json` work out of the box; disable them only when you need a stricter profile.
 > - `Skills` and `prompt templates` are intentionally enabled for developer experience.
 
 ## Files
@@ -138,6 +140,12 @@ PI_ALLOW_CONTEXT_FILES=0 ./run-secure-pi.sh /<path-to-repo>/
 PI_DISABLE_BASH_TOOL=1 ./run-secure-pi.sh /<path-to-repo>/
 ```
 
+- Disable extensions/packages:
+
+```bash
+PI_DISABLE_EXTENSIONS=1 ./run-secure-pi.sh /<path-to-repo>/
+```
+
 - Disable outbound network (default allows network):
 
 ```bash
@@ -188,6 +196,7 @@ This project uses a **balanced zero-trust profile** by default: strong runtime h
 | --- | --- | --- | --- |
 | Container egress | `PI_DOCKER_NETWORK_NONE=1` | Network enabled | Keep out-of-box model/API usage working; strict mode remains one env toggle away. |
 | Workspace writes | `PI_WORKSPACE_READONLY=1` | Workspace writable | Allow normal coding-agent edit workflows without extra setup. |
+| Extensions/packages | `PI_DISABLE_EXTENSIONS=1` | Allowed | Keep `settings.json` packages usable by default; disable only for stricter trust boundaries. |
 | Context files (`AGENTS.md`/`CLAUDE.md`) | `PI_ALLOW_CONTEXT_FILES=0` | Enabled | Preserve expected agent behavior in existing repos; can be disabled in stricter environments. |
 | Bash tool | `PI_DISABLE_BASH_TOOL=1` | Enabled | Maintain full coding-agent utility for typical developer tasks; disable when command execution must be restricted. |
 | Auth persistence | Ephemeral auth per run | Persist in `secure-pi-agent` volume | One-time `/login` and seamless reuse across runs improves enterprise adoption and onboarding. |
