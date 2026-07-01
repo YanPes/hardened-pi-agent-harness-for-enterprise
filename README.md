@@ -179,3 +179,17 @@ docker compose run --rm pi -p "review this repository"
 2. Model-provider traffic is allowed by default; disable it with `PI_DOCKER_NETWORK_NONE=1` when needed.
 3. For strict egress control, combine this with your enterprise proxy/firewall egress allowlist.
 4. Credentials are intentionally persisted in Docker volume `secure-pi-agent` for usability (one-time `/login`), while keeping them out of images.
+
+## Zero-trust level vs UX: current decision
+
+This project uses a **balanced zero-trust profile** by default: strong runtime hardening and scoped access, while keeping login and daily usage friction low.
+
+| Area | Security-first option | Current default (UX-oriented) | Rationale |
+| --- | --- | --- | --- |
+| Container egress | `PI_DOCKER_NETWORK_NONE=1` | Network enabled | Keep out-of-box model/API usage working; strict mode remains one env toggle away. |
+| Workspace writes | `PI_WORKSPACE_READONLY=1` | Workspace writable | Allow normal coding-agent edit workflows without extra setup. |
+| Context files (`AGENTS.md`/`CLAUDE.md`) | `PI_ALLOW_CONTEXT_FILES=0` | Enabled | Preserve expected agent behavior in existing repos; can be disabled in stricter environments. |
+| Bash tool | `PI_DISABLE_BASH_TOOL=1` | Enabled | Maintain full coding-agent utility for typical developer tasks; disable when command execution must be restricted. |
+| Auth persistence | Ephemeral auth per run | Persist in `secure-pi-agent` volume | One-time `/login` and seamless reuse across runs improves enterprise adoption and onboarding. |
+
+**Summary:** default posture is hardened and enterprise-appropriate for most teams, but not maximum isolation by default. For stricter zero-trust operation, enable the hardening toggles above (especially `PI_DOCKER_NETWORK_NONE=1`) and pair with org-level egress controls.
