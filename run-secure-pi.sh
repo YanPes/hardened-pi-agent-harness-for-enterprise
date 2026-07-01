@@ -27,7 +27,7 @@ Examples:
 
 Env toggles:
   PI_REBUILD=1              Rebuild image before run
-  PI_VERSION=0.42.0         Override default pi version at build time
+  PI_VERSION=0.80.2         Override default pi version at build time
   PI_DOCKER_NETWORK_NONE=1  Disable outbound network completely
   PI_WORKSPACE_READONLY=1   Mount workspace read-only
   PI_DISABLE_BASH_TOOL=1    Disable bash tool in pi
@@ -36,7 +36,7 @@ EOF
   exit 0
 fi
 
-PI_VERSION="${PI_VERSION:-0.42.0}"
+PI_VERSION="${PI_VERSION:-0.80.2}"
 
 if [[ $# -eq 0 || "${1}" == -* ]]; then
   REPO_PATH="$(pwd)"
