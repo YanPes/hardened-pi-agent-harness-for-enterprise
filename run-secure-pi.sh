@@ -27,7 +27,7 @@ Examples:
 
 Env toggles:
   PI_REBUILD=1              Rebuild image before run
-  PI_VERSION=0.80.2         Override default pi version at build time
+  PI_VERSION=<version>      Override Dockerfile ARG PI_VERSION at build time
   PI_DOCKER_NETWORK_NONE=1  Disable outbound network completely
   PI_WORKSPACE_READONLY=1   Mount workspace read-only
   PI_DISABLE_EXTENSIONS=1   Disable packages/extensions loaded from settings.json
@@ -37,7 +37,7 @@ EOF
   exit 0
 fi
 
-PI_VERSION="${PI_VERSION:-0.80.2}"
+PI_VERSION="${PI_VERSION:-}"
 
 if [[ $# -eq 0 || "${1}" == -* ]]; then
   REPO_PATH="$(pwd)"
@@ -64,8 +64,15 @@ HOST_PI_AUTH_FILE="$(resolve_path "${HOST_PI_AUTH_FILE}")"
 PI_AUTH_JSON_BASE64="$(base64 <"${HOST_PI_AUTH_FILE}" | tr -d '\n')"
 
 if [[ "${REBUILD}" == "1" ]] || ! docker image inspect "${IMAGE}" >/dev/null 2>&1; then
-  echo "[secure-pi] Building image ${IMAGE} (PI_VERSION=${PI_VERSION})"
-  docker build --build-arg "PI_VERSION=${PI_VERSION}" -t "${IMAGE}" "${SCRIPT_DIR}"
+  BUILD_ARGS=()
+  if [[ -n "${PI_VERSION}" ]]; then
+    BUILD_ARGS+=(--build-arg "PI_VERSION=${PI_VERSION}")
+    echo "[secure-pi] Building image ${IMAGE} (PI_VERSION=${PI_VERSION}, overridden)"
+  else
+    echo "[secure-pi] Building image ${IMAGE} (PI_VERSION from Dockerfile ARG)"
+  fi
+
+  docker build "${BUILD_ARGS[@]}" -t "${IMAGE}" "${SCRIPT_DIR}"
 fi
 
 DOCKER_NETWORK_ARGS=()

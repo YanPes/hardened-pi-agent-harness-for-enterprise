@@ -1,6 +1,6 @@
 FROM node:22-bookworm-slim@sha256:a149cd71dccd68704a07d4e4ca3e610c27301852b0f556865cfdb6e2856f8bed
 
-ARG PI_VERSION=0.80.2
+ARG PI_VERSION=0.74.0
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends bash ca-certificates git gosu openssh-client fd-find ripgrep \
