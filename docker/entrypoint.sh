@@ -2,14 +2,33 @@
 set -euo pipefail
 
 PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-${HOME}/.pi/agent}"
-PI_AUTH_TARGET="${PI_AGENT_DIR}/auth.json"
 PI_AUTH_JSON_BASE64="${PI_AUTH_JSON_BASE64:-}"
 
-mkdir -p "${PI_AGENT_DIR}"
+ensure_writable_agent_dir() {
+  local dir="$1"
+  mkdir -p "${dir}" 2>/dev/null || return 1
+  local probe="${dir}/.pi-write-probe"
+  if : >"${probe}" 2>/dev/null; then
+    rm -f "${probe}" || true
+    return 0
+  fi
+  return 1
+}
+
+if ! ensure_writable_agent_dir "${PI_AGENT_DIR}"; then
+  FALLBACK_AGENT_DIR="/tmp/pi-agent"
+  echo "[secure-pi] WARN: ${PI_AGENT_DIR} not writable by uid=$(id -u). Falling back to ${FALLBACK_AGENT_DIR}." >&2
+  ensure_writable_agent_dir "${FALLBACK_AGENT_DIR}"
+  PI_AGENT_DIR="${FALLBACK_AGENT_DIR}"
+  export PI_CODING_AGENT_DIR="${PI_AGENT_DIR}"
+fi
+
+PI_AUTH_TARGET="${PI_AGENT_DIR}/auth.json"
 
 if [[ ! -s "${PI_AUTH_TARGET}" && -n "${PI_AUTH_JSON_BASE64}" ]]; then
-  printf '%s' "${PI_AUTH_JSON_BASE64}" | base64 -d >"${PI_AUTH_TARGET}"
-  chown pi:pi "${PI_AUTH_TARGET}"
+  if ! printf '%s' "${PI_AUTH_JSON_BASE64}" | base64 -d >"${PI_AUTH_TARGET}" 2>/dev/null; then
+    echo "[secure-pi] WARN: cannot write ${PI_AUTH_TARGET}; skipping auth import." >&2
+  fi
 fi
 
 if [[ ! -f "${PI_AGENT_DIR}/settings.json" ]]; then

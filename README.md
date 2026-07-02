@@ -6,7 +6,7 @@ Hardened Docker wrapper for `pi` (https://pi.dev/) suitable for zero-trust enter
 
 - **Repo scoping**: only one host repository is mounted to `/workspace`
 - **Read-only container root filesystem**: blocks writes outside mounted tmpfs + repo
-- **Non-root runtime user**: runs as UID `10001` user `pi`
+- **Runtime user configurable**: defaults to host-matching uid:gid in `run-secure-pi.sh` (for workspace write access); override with `PI_CONTAINER_USER=<uid:gid>` when needed
 - **Dropped Linux capabilities**: `--cap-drop ALL`
 - **No privilege escalation**: `no-new-privileges:true`
 - **Constrained resources**: CPU, memory, PID limits
@@ -158,10 +158,37 @@ PI_DOCKER_NETWORK_NONE=1 ./run-secure-pi.sh /<path-to-repo>/
 PI_WORKSPACE_READONLY=1 ./run-secure-pi.sh /<path-to-repo>/
 ```
 
+- Override runtime user explicitly:
+
+```bash
+PI_CONTAINER_USER=10001:10001 ./run-secure-pi.sh /<path-to-repo>/
+```
+
 - Override built-in Pi version pin:
 
 ```bash
 PI_VERSION=0.42.0 ./run-secure-pi.sh /<path-to-repo>/
+```
+
+## Linux users / UIDs used by this setup
+
+These identities are used for different stages (build, startup, runtime). They are not all privileged at the same time.
+
+| UID:GID | Name / source | Where used | Why |
+| --- | --- | --- | --- |
+| `0:0` | `root` | Image build steps; optional runtime if you explicitly set `PI_CONTAINER_USER=0:0` | Needed for package install and system setup during image build. Runtime root is **not** the default. |
+| `10001:10001` | `pi` (user created in `Dockerfile`) | Owner of `/home/pi`, `/opt/pi`, and baked-in Pi install/seed data | Dedicated non-root service user inside the image. Good fixed UID option when you want deterministic container identity. |
+| `1000:1000` | Typical first Linux desktop user | `docker-compose.yml` fallback default: `user: "${PI_CONTAINER_USER:-1000:1000}"` | Sensible compose default on many Linux hosts, but can be overridden. |
+| `<host_uid>:<host_gid>` | Current host user | Default for `run-secure-pi.sh` (`id -u:id -g`) | Prevents permission mismatch when editing files in mounted `/workspace`. |
+
+Quick override examples:
+
+```bash
+# Fixed non-root service identity
+PI_CONTAINER_USER=10001:10001 ./run-secure-pi.sh /<path-to-repo>/
+
+# Explicit root (only if you intentionally need it)
+PI_CONTAINER_USER=0:0 ./run-secure-pi.sh /<path-to-repo>/
 ```
 
 ## Compose usage
@@ -196,6 +223,7 @@ This project uses a **balanced zero-trust profile** by default: strong runtime h
 | --- | --- | --- | --- |
 | Container egress | `PI_DOCKER_NETWORK_NONE=1` | Network enabled | Keep out-of-box model/API usage working; strict mode remains one env toggle away. |
 | Workspace writes | `PI_WORKSPACE_READONLY=1` | Workspace writable | Allow normal coding-agent edit workflows without extra setup. |
+| Runtime user | `PI_CONTAINER_USER=10001:10001` | Host uid:gid (run script) / `1000:1000` (compose default) | Avoid UID/GID mismatch blocking edits in mounted repos. |
 | Extensions/packages | `PI_DISABLE_EXTENSIONS=1` | Allowed | Keep `settings.json` packages usable by default; disable only for stricter trust boundaries. |
 | Context files (`AGENTS.md`/`CLAUDE.md`) | `PI_ALLOW_CONTEXT_FILES=0` | Enabled | Preserve expected agent behavior in existing repos; can be disabled in stricter environments. |
 | Bash tool | `PI_DISABLE_BASH_TOOL=1` | Enabled | Maintain full coding-agent utility for typical developer tasks; disable when command execution must be restricted. |

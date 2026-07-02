@@ -6,7 +6,7 @@ services:
     stdin_open: true
     tty: true
     working_dir: /workspace
-    user: "10001:10001"
+    user: "${PI_CONTAINER_USER:-1000:1000}"
     read_only: true
     cap_drop:
       - ALL
@@ -14,7 +14,7 @@ services:
       - no-new-privileges:true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=256m
-      - /run:rw,noexec,nosuid,uid=10001,gid=10001,mode=0700,size=4m
+      - /run:rw,noexec,nosuid,uid=0,gid=0,mode=0700,size=4m
     pids_limit: 512
     mem_limit: 4g
     cpus: 2.0

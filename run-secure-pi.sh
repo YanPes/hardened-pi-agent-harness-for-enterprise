@@ -30,6 +30,7 @@ Env toggles:
   PI_VERSION=<version>      Override Dockerfile ARG PI_VERSION at build time
   PI_DOCKER_NETWORK_NONE=1  Disable outbound network completely
   PI_WORKSPACE_READONLY=1   Mount workspace read-only
+  PI_CONTAINER_USER=<uid:gid> Runtime user inside container (default: current host uid:gid)
   PI_DISABLE_EXTENSIONS=1   Disable packages/extensions loaded from settings.json
   PI_DISABLE_BASH_TOOL=1    Disable bash tool in pi
   PI_ALLOW_CONTEXT_FILES=0  Disable AGENTS.md / CLAUDE.md loading
@@ -85,13 +86,16 @@ if [[ "${PI_WORKSPACE_READONLY:-0}" == "1" ]]; then
   WORKSPACE_MOUNT="type=bind,src=${REPO_PATH},dst=/workspace,readonly"
 fi
 
+DEFAULT_CONTAINER_USER="$(id -u):$(id -g)"
+CONTAINER_USER="${PI_CONTAINER_USER:-${DEFAULT_CONTAINER_USER}}"
+
 docker run --rm -it \
   --workdir /workspace \
-  --user 10001:10001 \
+  --user "${CONTAINER_USER}" \
   --mount "${WORKSPACE_MOUNT}" \
   --read-only \
   --tmpfs /tmp:rw,noexec,nosuid,size=256m \
-  --tmpfs /run:rw,noexec,nosuid,uid=10001,gid=10001,mode=0700,size=4m \
+  --tmpfs /run:rw,noexec,nosuid,uid=0,gid=0,mode=0700,size=4m \
   --mount type=volume,src=secure-pi-agent,dst=/home/pi/.pi \
   --cap-drop ALL \
   --security-opt no-new-privileges:true \
