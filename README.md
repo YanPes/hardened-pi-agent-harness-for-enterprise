@@ -91,10 +91,33 @@ Manual build:
 docker build -t secure-pi:latest .
 ```
 
+Build for a specific architecture:
+
+```bash
+# Native ARM64 build
+docker build --build-arg TARGETARCH=arm64 --platform linux/arm64 -t secure-pi:arm64 .
+
+# Native x86_64/AMD64 build
+docker build --build-arg TARGETARCH=amd64 --platform linux/amd64 -t secure-pi:amd64 .
+```
+
 Pin a specific Pi version:
 
 ```bash
 docker build --build-arg PI_VERSION=0.42.0 -t secure-pi:0.42.0 .
+```
+
+Base image SHA pinning:
+
+- AMD64 base image is pinned by default in `Dockerfile`.
+- For ARM64 SHA pinning, pass a digest explicitly:
+
+```bash
+docker build \
+  --build-arg TARGETARCH=arm64 \
+  --build-arg NODE_BASE_IMAGE_ARM64=node:22-bookworm-slim@sha256:<arm64-or-manifest-digest> \
+  --platform linux/arm64 \
+  -t secure-pi:arm64 .
 ```
 
 ## Run (recommended all-in-one)
@@ -168,6 +191,25 @@ PI_CONTAINER_USER=10001:10001 ./run-secure-pi.sh /<path-to-repo>/
 
 ```bash
 PI_VERSION=0.42.0 ./run-secure-pi.sh /<path-to-repo>/
+```
+
+- Force build architecture when auto-detect is not desired:
+
+```bash
+PI_TARGETARCH=arm64 ./run-secure-pi.sh /<path-to-repo>/
+PI_TARGETARCH=amd64 ./run-secure-pi.sh /<path-to-repo>/
+```
+
+- Pass explicit Docker build platform (useful with buildx/emulation):
+
+```bash
+PI_BUILD_PLATFORM=linux/arm64 ./run-secure-pi.sh /<path-to-repo>/
+```
+
+- Override ARM64 base image (for digest pinning):
+
+```bash
+PI_NODE_BASE_IMAGE_ARM64='node:22-bookworm-slim@sha256:<digest>' ./run-secure-pi.sh /<path-to-repo>/
 ```
 
 ## Linux users / UIDs used by this setup

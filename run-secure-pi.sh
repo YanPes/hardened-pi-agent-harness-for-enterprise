@@ -16,6 +16,14 @@ resolve_path() {
   fi
 }
 
+detect_target_arch() {
+  case "$(uname -m)" in
+    x86_64) echo "amd64" ;;
+    aarch64|arm64) echo "arm64" ;;
+    *) echo "" ;;
+  esac
+}
+
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   cat <<'EOF'
 Usage:
@@ -34,6 +42,9 @@ Env toggles:
   PI_DISABLE_EXTENSIONS=1   Disable packages/extensions loaded from settings.json
   PI_DISABLE_BASH_TOOL=1    Disable bash tool in pi
   PI_ALLOW_CONTEXT_FILES=0  Disable AGENTS.md / CLAUDE.md loading
+  PI_TARGETARCH=<amd64|arm64> Force Dockerfile TARGETARCH (default: auto-detect host)
+  PI_BUILD_PLATFORM=<platform> Pass --platform to docker build (example: linux/arm64)
+  PI_NODE_BASE_IMAGE_ARM64=<image@sha256:...> Override ARM64 base image (for SHA pinning)
 EOF
   exit 0
 fi
@@ -66,11 +77,29 @@ PI_AUTH_JSON_BASE64="$(base64 <"${HOST_PI_AUTH_FILE}" | tr -d '\n')"
 
 if [[ "${REBUILD}" == "1" ]] || ! docker image inspect "${IMAGE}" >/dev/null 2>&1; then
   BUILD_ARGS=()
+  TARGETARCH="${PI_TARGETARCH:-$(detect_target_arch)}"
+  BUILD_PLATFORM="${PI_BUILD_PLATFORM:-}"
+
   if [[ -n "${PI_VERSION}" ]]; then
     BUILD_ARGS+=(--build-arg "PI_VERSION=${PI_VERSION}")
-    echo "[secure-pi] Building image ${IMAGE} (PI_VERSION=${PI_VERSION}, overridden)"
+  fi
+
+  if [[ -n "${TARGETARCH}" ]]; then
+    BUILD_ARGS+=(--build-arg "TARGETARCH=${TARGETARCH}")
+  fi
+
+  if [[ -n "${PI_NODE_BASE_IMAGE_ARM64:-}" ]]; then
+    BUILD_ARGS+=(--build-arg "NODE_BASE_IMAGE_ARM64=${PI_NODE_BASE_IMAGE_ARM64}")
+  fi
+
+  if [[ -n "${BUILD_PLATFORM}" ]]; then
+    BUILD_ARGS+=(--platform "${BUILD_PLATFORM}")
+  fi
+
+  if [[ -n "${PI_VERSION}" ]]; then
+    echo "[secure-pi] Building image ${IMAGE} (PI_VERSION=${PI_VERSION}, TARGETARCH=${TARGETARCH:-default}${BUILD_PLATFORM:+, PLATFORM=${BUILD_PLATFORM}})"
   else
-    echo "[secure-pi] Building image ${IMAGE} (PI_VERSION from Dockerfile ARG)"
+    echo "[secure-pi] Building image ${IMAGE} (PI_VERSION from Dockerfile ARG, TARGETARCH=${TARGETARCH:-default}${BUILD_PLATFORM:+, PLATFORM=${BUILD_PLATFORM}})"
   fi
 
   docker build "${BUILD_ARGS[@]}" -t "${IMAGE}" "${SCRIPT_DIR}"
