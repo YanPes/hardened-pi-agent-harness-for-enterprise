@@ -28,6 +28,7 @@ Hardened Docker wrapper for `pi` (https://pi.dev/) suitable for zero-trust enter
 ## Files
 
 - `Dockerfile` - hardened `pi` image
+- `bin/setup.js` - shell alias helper for `npx` / `pnpx`
 - `docker/entrypoint.sh` - secure defaults + startup config bootstrap
 - `config/settings.json` - telemetry-off base settings
 - `run-secure-pi.sh` - all-in-one Linux/macOS wrapper (auto-build + run)
@@ -35,50 +36,38 @@ Hardened Docker wrapper for `pi` (https://pi.dev/) suitable for zero-trust enter
 
 ## Getting started
 
-### Linux / macOS first-time setup
+### Recommended: `npx` / `pnpx`
 
-Before first run, make the wrapper executable:
+If this repo is published as a package, run the setup binary:
+
+```bash
+npx hardened-pi-agent-harness-for-enterprise
+# or
+pnpx hardened-pi-agent-harness-for-enterprise
+```
+
+This adds a `pi` alias to `~/.bashrc` or `~/.zshrc` that points to `run-secure-pi.sh`.
+
+Restart your shell, then run:
+
+```bash
+pi /absolute/path/to/repo
+pi -p "summarize this codebase"
+```
+
+### Local clone fallback
+
+If you have the repo cloned locally, you can still run the wrapper directly:
 
 ```bash
 chmod +x run-secure-pi.sh
-```
-
-What this does:
-
-- Adds execute permission to `run-secure-pi.sh` so `./run-secure-pi.sh` works.
-
-If you cloned files with Windows-style line endings, convert shell scripts to Unix line endings:
-
-```bash
-perl -pi -e 's/\r$//' run-secure-pi.sh docker/entrypoint.sh
-```
-
-What this does:
-
-- Removes trailing `\r` characters from each line.
-- Fixes errors like `/usr/bin/env: ‘bash\r’: No such file or directory`.
-- Ensures shell shebangs work on Linux/macOS.
-
-Then run Pi against repo:
-
-```bash
 ./run-secure-pi.sh /absolute/path/to/repo
 ```
 
-Optional: add a short shell alias in `~/.bashrc`:
+Ensure LF line endings in shell scripts:
 
 ```bash
-alias secpi='/absolute/path/to/hardened-pi-agent-harness-for-enterprise/run-secure-pi.sh'
-```
-
-What this does:
-
-- Lets you run `secpi /absolute/path/to/repo` instead of typing full script path.
-
-Apply it:
-
-```bash
-source ~/.bashrc
+perl -pi -e 's/\r$//' run-secure-pi.sh docker/entrypoint.sh bin/setup.js
 ```
 
 ## Build (optional)
