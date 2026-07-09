@@ -12,6 +12,9 @@ const BIN_DIR = path.join(HOME, '.local', 'bin');
 const SHIM_PATH = path.join(BIN_DIR, 'secure-pi');
 const TARGET_SCRIPT = path.join(INSTALL_DIR, 'run-secure-pi.sh');
 const IMAGE = process.env.PI_SECURE_IMAGE || 'secure-pi:latest';
+const VOLUME = process.env.PI_SECURE_VOLUME || 'secure-pi-agent';
+const MARKER_START = '# >>> pi alias setup >>>';
+const MARKER_END = '# <<< pi alias setup <<<';
 
 function detectShell() {
   const shell = process.env.SHELL || '';
@@ -26,6 +29,10 @@ function getRcFile(shellName) {
   if (shellName === 'bash') return path.join(HOME, '.bashrc');
   if (shellName === 'fish') return path.join(HOME, '.config', 'fish', 'config.fish');
   return null;
+}
+
+function getKnownRcFiles() {
+  return ['bash', 'zsh', 'fish'].map(getRcFile);
 }
 
 function ensureDirExists(dirPath) {
@@ -60,6 +67,15 @@ function ensureExecutable(filePath) {
 
 function shellQuote(value) {
   return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
+function removePath(targetPath) {
+  if (!fs.existsSync(targetPath)) {
+    return false;
+  }
+
+  fs.rmSync(targetPath, { recursive: true, force: true });
+  return true;
 }
 
 function installBundle() {
@@ -98,18 +114,16 @@ function updateShellRc() {
   const rcFile = getRcFile(shellName);
   ensureFileExists(rcFile);
 
-  const markerStart = '# >>> pi alias setup >>>';
-  const markerEnd = '# <<< pi alias setup <<<';
   const pathLine = 'export PATH="$HOME/.local/bin:$PATH"';
   const aliasLine = `alias pi=${shellQuote(SHIM_PATH)}`;
-  const block = `\n${markerStart}\n${pathLine}\n${aliasLine}\n${markerEnd}\n`;
+  const block = `\n${MARKER_START}\n${pathLine}\n${aliasLine}\n${MARKER_END}\n`;
 
   const current = fs.readFileSync(rcFile, 'utf8');
 
-  if (current.includes(markerStart) && current.includes(markerEnd)) {
+  if (current.includes(MARKER_START) && current.includes(MARKER_END)) {
     const updated = current.replace(
-      new RegExp(`${markerStart}[\\s\\S]*?${markerEnd}`, 'm'),
-      `${markerStart}\n${pathLine}\n${aliasLine}\n${markerEnd}`
+      new RegExp(`${MARKER_START}[\\s\\S]*?${MARKER_END}`, 'm'),
+      `${MARKER_START}\n${pathLine}\n${aliasLine}\n${MARKER_END}`
     );
     fs.writeFileSync(rcFile, updated, 'utf8');
     console.log(`Updated pi shell setup in ${rcFile}`);
@@ -121,6 +135,32 @@ function updateShellRc() {
   }
 
   return rcFile;
+}
+
+function removeShellSetup() {
+  let changed = false;
+
+  for (const rcFile of getKnownRcFiles()) {
+    if (!rcFile || !fs.existsSync(rcFile)) {
+      continue;
+    }
+
+    const current = fs.readFileSync(rcFile, 'utf8');
+    if (!current.includes(MARKER_START) || !current.includes(MARKER_END)) {
+      continue;
+    }
+
+    const updated = current
+      .replace(new RegExp(`\\n?${MARKER_START}[\\s\\S]*?${MARKER_END}\\n?`, 'm'), '\n')
+      .replace(/^\n+/, '');
+    fs.writeFileSync(rcFile, updated, 'utf8');
+    console.log(`Removed pi shell setup from ${rcFile}`);
+    changed = true;
+  }
+
+  if (!changed) {
+    console.log('No shell alias block found in rc files.');
+  }
 }
 
 function detectTargetArch() {
@@ -138,6 +178,10 @@ function canRunDocker() {
 function dockerImageExists() {
   const result = spawnSync('docker', ['image', 'inspect', IMAGE], { stdio: 'ignore' });
   return result.status === 0;
+}
+
+function runDocker(args) {
+  return spawnSync('docker', args, { stdio: 'inherit' });
 }
 
 function buildImageIfNeeded() {
@@ -188,7 +232,78 @@ function buildImageIfNeeded() {
   }
 }
 
-function run() {
+function printHelp() {
+  console.log(`Usage:
+  npx zero-trust-pi-agent-harness
+  npx zero-trust-pi-agent-harness install
+  npx zero-trust-pi-agent-harness clean [--yes] [--keep-docker]
+
+Commands:
+  install        Install/update the local secure-pi bundle (default)
+  clean          Remove local bundle, launcher, shell alias, and Docker artifacts
+
+Options:
+  --yes          Skip confirmation prompt for destructive cleanup
+  --keep-docker  Keep Docker image/volume and only remove local files
+`);
+}
+
+function confirmCleanup() {
+  if (process.env.PI_SECURE_CLEAN_FORCE === '1' || process.argv.includes('--yes')) {
+    return true;
+  }
+
+  process.stdout.write(
+    `This will remove:\n` +
+    `- ${INSTALL_DIR}\n` +
+    `- ${SHIM_PATH}\n` +
+    `- pi shell alias block from bash/zsh/fish rc files\n` +
+    `- Docker image ${IMAGE} and volume ${VOLUME} (unless --keep-docker)\n\n` +
+    `Continue? [y/N] `
+  );
+
+  try {
+    const answer = fs.readFileSync(0, 'utf8').trim().toLowerCase();
+    return answer === 'y' || answer === 'yes';
+  } catch {
+    return false;
+  }
+}
+
+function cleanInstall() {
+  const keepDocker = process.argv.includes('--keep-docker');
+
+  if (!confirmCleanup()) {
+    console.log('Cleanup cancelled.');
+    process.exit(1);
+  }
+
+  const removedBundle = removePath(INSTALL_DIR);
+  console.log(removedBundle ? `Removed ${INSTALL_DIR}` : `Not found: ${INSTALL_DIR}`);
+
+  const removedShim = removePath(SHIM_PATH);
+  console.log(removedShim ? `Removed ${SHIM_PATH}` : `Not found: ${SHIM_PATH}`);
+
+  removeShellSetup();
+
+  if (keepDocker) {
+    console.log('Keeping Docker image and volume (--keep-docker).');
+    return;
+  }
+
+  if (!canRunDocker()) {
+    console.log('Docker not available; skipped Docker image/volume cleanup.');
+    return;
+  }
+
+  console.log(`Removing Docker volume ${VOLUME}...`);
+  runDocker(['volume', 'rm', '-f', VOLUME]);
+
+  console.log(`Removing Docker image ${IMAGE}...`);
+  runDocker(['image', 'rm', '-f', IMAGE]);
+}
+
+function install() {
   installBundle();
   writeShim();
   const rcFile = updateShellRc();
@@ -196,9 +311,32 @@ function run() {
 
   console.log(`Installed secure-pi bundle to ${INSTALL_DIR}`);
   console.log(`Installed launcher to ${SHIM_PATH}`);
-  console.log('----------------------------------------------')
+  console.log('----------------------------------------------');
   console.log(`Restart shell or run: source ${rcFile}`);
   console.log('Then run: pi');
 }
 
-run();
+function main() {
+  const [command] = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
+
+  if (command === 'help' || command === '--help' || process.argv.includes('--help')) {
+    printHelp();
+    return;
+  }
+
+  if (!command || command === 'install') {
+    install();
+    return;
+  }
+
+  if (command === 'clean') {
+    cleanInstall();
+    return;
+  }
+
+  console.error(`Unknown command: ${command}`);
+  printHelp();
+  process.exit(1);
+}
+
+main();

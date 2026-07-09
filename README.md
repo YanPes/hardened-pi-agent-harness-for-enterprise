@@ -28,7 +28,7 @@ Hardened Docker wrapper for `pi` (<https://pi.dev/>) suitable for zero-trust ent
 ## Files
 
 - `Dockerfile` - hardened `pi` image
-- `bin/setup.js` - shell alias helper for `npx` / `pnpx`
+- `bin/setup.js` - install/cleanup helper for `npx` / `pnpx`
 - `docker/entrypoint.sh` - secure defaults + startup config bootstrap
 - `config/settings.json` - telemetry-off base settings
 - `run-secure-pi.sh` - all-in-one Linux/macOS wrapper (auto-build + run)
@@ -55,6 +55,24 @@ If you want to skip the pre-build step during setup:
 ```bash
 PI_SETUP_SKIP_BUILD=1 npx zero-trust-pi-agent-harness
 ```
+
+To fully remove the local install and stale Docker artifacts later:
+
+```bash
+npx zero-trust-pi-agent-harness clean
+# non-interactive
+npx zero-trust-pi-agent-harness clean --yes
+# keep Docker image + volume, only remove local files / shell setup
+npx zero-trust-pi-agent-harness clean --yes --keep-docker
+```
+
+Cleanup removes:
+
+- `~/.local/share/secure-pi`
+- `~/.local/bin/secure-pi`
+- the managed `pi` alias block in your shell rc files
+- Docker image `secure-pi:latest`
+- Docker volume `secure-pi-agent`
 
 Restart your shell, then run:
 
