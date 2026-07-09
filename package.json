@@ -1,7 +1,8 @@
 {
   "name": "zero-trust-pi-agent-harness",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "bin": {
+    "zero-trust-pi-agent-harness": "./bin/setup.js",
     "secure-pi": "./bin/setup.js"
   }
 }

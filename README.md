@@ -46,6 +46,8 @@ npx zero-trust-pi-agent-harness
 pnpx zero-trust-pi-agent-harness
 ```
 
+The package also exposes a `secure-pi` bin name for direct invocation by package managers that prefer the bin name over the package name.
+
 This adds a `pi` alias to `~/.bashrc` or `~/.zshrc` that points to `run-secure-pi.sh`.
 
 Restart your shell, then run:
