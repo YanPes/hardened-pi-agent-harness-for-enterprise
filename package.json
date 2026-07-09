@@ -4,5 +4,13 @@
   "bin": {
     "zero-trust-pi-agent-harness": "./bin/setup.js",
     "secure-pi": "./bin/setup.js"
-  }
+  },
+  "files": [
+    "bin",
+    "config",
+    "docker",
+    "Dockerfile",
+    "run-secure-pi.sh",
+    "README.md"
+  ]
 }

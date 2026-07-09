@@ -38,7 +38,7 @@ Hardened Docker wrapper for `pi` (https://pi.dev/) suitable for zero-trust enter
 
 ### Recommended: `npx` / `pnpx`
 
-If this repo is published as a package, run the setup binary:
+No local clone required. If this repo is published as a package, run the setup binary:
 
 ```bash
 npx zero-trust-pi-agent-harness
@@ -48,7 +48,13 @@ pnpx zero-trust-pi-agent-harness
 
 The package also exposes a `secure-pi` bin name for direct invocation by package managers that prefer the bin name over the package name.
 
-This adds a `pi` alias to `~/.bashrc` or `~/.zshrc` that points to `run-secure-pi.sh`.
+Setup now installs a stable local bundle to `~/.local/share/secure-pi`, creates `~/.local/bin/secure-pi`, updates `~/.bashrc` or `~/.zshrc`, and adds an interactive `pi` alias. It also attempts to pre-build the Docker image so first real `pi` run is ready faster.
+
+If you want to skip the pre-build step during setup:
+
+```bash
+PI_SETUP_SKIP_BUILD=1 npx zero-trust-pi-agent-harness
+```
 
 Restart your shell, then run:
 
