@@ -1,5 +1,5 @@
 {
-  "name": "hardened-pi-agent-harness-for-enterprise",
+  "name": "zero-trust-pi-agent-harness",
   "version": "1.0.0",
   "bin": {
     "secure-pi": "./bin/setup.js"

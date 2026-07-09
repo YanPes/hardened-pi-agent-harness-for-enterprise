@@ -1,4 +1,4 @@
-# Hardened Pi Agent Harness For Enterprise
+# zero-trust-pi-agent-harness
 
 Hardened Docker wrapper for `pi` (https://pi.dev/) suitable for zero-trust enterprise environments. `secure-pi` launches `pi` in a locked-down container with secure defaults, minimizing attack surface while maintaining core functionality for codebase and LLM interactions.
 
@@ -41,9 +41,9 @@ Hardened Docker wrapper for `pi` (https://pi.dev/) suitable for zero-trust enter
 If this repo is published as a package, run the setup binary:
 
 ```bash
-npx hardened-pi-agent-harness-for-enterprise
+npx zero-trust-pi-agent-harness
 # or
-pnpx hardened-pi-agent-harness-for-enterprise
+pnpx zero-trust-pi-agent-harness
 ```
 
 This adds a `pi` alias to `~/.bashrc` or `~/.zshrc` that points to `run-secure-pi.sh`.
