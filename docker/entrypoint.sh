@@ -4,30 +4,20 @@ set -euo pipefail
 PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-${HOME}/.pi/agent}"
 PI_AUTH_JSON_BASE64="${PI_AUTH_JSON_BASE64:-}"
 
-ensure_writable_agent_dir() {
-  local dir="$1"
-  mkdir -p "${dir}" 2>/dev/null || return 1
-  local probe="${dir}/.pi-write-probe"
-  if : >"${probe}" 2>/dev/null; then
-    rm -f "${probe}" || true
-    return 0
-  fi
-  return 1
-}
-
-if ! ensure_writable_agent_dir "${PI_AGENT_DIR}"; then
-  FALLBACK_AGENT_DIR="/tmp/pi-agent"
-  echo "[secure-pi] WARN: ${PI_AGENT_DIR} not writable by uid=$(id -u). Falling back to ${FALLBACK_AGENT_DIR}." >&2
-  ensure_writable_agent_dir "${FALLBACK_AGENT_DIR}"
-  PI_AGENT_DIR="${FALLBACK_AGENT_DIR}"
-  export PI_CODING_AGENT_DIR="${PI_AGENT_DIR}"
+# Volume dir is 1777 (set at image build). mkdir -p should always succeed.
+# If it fails the container cannot function; we abort with a clear message.
+if ! mkdir -p "${PI_AGENT_DIR}" 2>/dev/null; then
+  echo "[secure-pi] FATAL: ${PI_AGENT_DIR} not writable by uid=$(id -u). Recreate the 'secure-pi-agent' volume and retry." >&2
+  exit 1
 fi
 
 PI_AUTH_TARGET="${PI_AGENT_DIR}/auth.json"
 
+# PI_AUTH_JSON_BASE64 is optional — only used for CI/CD pre-seeding.
+# Normal flow: user runs /login once; token persists in the volume.
 if [[ ! -s "${PI_AUTH_TARGET}" && -n "${PI_AUTH_JSON_BASE64}" ]]; then
   if ! printf '%s' "${PI_AUTH_JSON_BASE64}" | base64 -d >"${PI_AUTH_TARGET}" 2>/dev/null; then
-    echo "[secure-pi] WARN: cannot write ${PI_AUTH_TARGET}; skipping auth import." >&2
+    echo "[secure-pi] WARN: could not write ${PI_AUTH_TARGET}; skipping auth pre-seed." >&2
   fi
 fi
 

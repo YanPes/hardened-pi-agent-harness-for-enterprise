@@ -4,7 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IMAGE="${PI_SECURE_IMAGE:-secure-pi:latest}"
 REBUILD="${PI_REBUILD:-0}"
-PI_AUTH_FILE="${PI_AUTH_FILE:-${HOME}/.pi/agent/auth.json}"
+# Auth lives entirely in the Docker volume. Container is self-sufficient.
+# To pre-seed auth (e.g. CI/CD), set PI_AUTH_JSON_BASE64 externally.
 
 resolve_path() {
   if command -v realpath >/dev/null 2>&1; then
@@ -65,15 +66,14 @@ fi
 
 REPO_PATH="$(resolve_path "${REPO_PATH}")"
 
-HOST_PI_AUTH_FILE="${PI_AUTH_FILE:-${HOME}/.pi/agent/auth.json}"
-
-AUTH_DIR="$(dirname "${HOST_PI_AUTH_FILE}")"
-mkdir -p "${AUTH_DIR}"
-if [[ ! -f "${HOST_PI_AUTH_FILE}" ]]; then
-  printf '{}\n' >"${HOST_PI_AUTH_FILE}"
-fi
-HOST_PI_AUTH_FILE="$(resolve_path "${HOST_PI_AUTH_FILE}")"
-PI_AUTH_JSON_BASE64="$(base64 <"${HOST_PI_AUTH_FILE}" | tr -d '\n')"
+# Fix volume dir permissions for existing volumes initialized with wrong ownership.
+# Runs as root (no --user, no --cap-drop) before the hardened main container.
+# No-op if already correct. The Dockerfile sets 1777 for new volumes.
+docker run --rm \
+  --mount type=volume,src=secure-pi-agent,dst=/home/pi/.pi \
+  --entrypoint sh \
+  "${IMAGE}" \
+  -c 'chmod 1777 /home/pi/.pi /home/pi/.pi/agent 2>/dev/null || true'
 
 if [[ "${REBUILD}" == "1" ]] || ! docker image inspect "${IMAGE}" >/dev/null 2>&1; then
   BUILD_ARGS=()
@@ -136,7 +136,7 @@ docker run --rm -it \
   -e PI_TELEMETRY=0 \
   -e PI_ALLOW_CONTEXT_FILES="${PI_ALLOW_CONTEXT_FILES:-1}" \
   -e PI_DISABLE_BASH_TOOL="${PI_DISABLE_BASH_TOOL:-0}" \
-  -e PI_AUTH_JSON_BASE64="${PI_AUTH_JSON_BASE64}" \
+  ${PI_AUTH_JSON_BASE64:+-e "PI_AUTH_JSON_BASE64=${PI_AUTH_JSON_BASE64}"} \
   "${DOCKER_NETWORK_ARGS[@]}" \
   "${IMAGE}" \
   "$@"

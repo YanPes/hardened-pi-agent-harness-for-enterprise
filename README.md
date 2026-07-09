@@ -21,7 +21,7 @@ Hardened Docker wrapper for `pi` (https://pi.dev/) suitable for zero-trust enter
 
 > **Intentional UX/Security tradeoffs:**
 >
-> - `~/.pi` state (including auth) is persisted in dedicated Docker volume (`secure-pi-agent`) for plug-and-play startup without host file permission tuning. On `run-secure-pi.sh`, existing host auth at `~/.pi/agent/auth.json` is imported automatically on first run when available.
+> - `~/.pi` state (including auth) is persisted in dedicated Docker volume (`secure-pi-agent`) — the container is fully self-sufficient. One-time `/login` inside the container writes the token to the volume; it persists across restarts with no host file involvement. For CI/CD pre-seeding, set `PI_AUTH_JSON_BASE64` externally.
 > - Extensions are allowed by default so curated packages from `settings.json` work out of the box; disable them only when you need a stricter profile.
 > - `Skills` and `prompt templates` are intentionally enabled for developer experience.
 
@@ -258,6 +258,6 @@ This project uses a **balanced zero-trust profile** by default: strong runtime h
 | Extensions/packages | `PI_DISABLE_EXTENSIONS=1` | Allowed | Keep `settings.json` packages usable by default; disable only for stricter trust boundaries. |
 | Context files (`AGENTS.md`/`CLAUDE.md`) | `PI_ALLOW_CONTEXT_FILES=0` | Enabled | Preserve expected agent behavior in existing repos; can be disabled in stricter environments. |
 | Bash tool | `PI_DISABLE_BASH_TOOL=1` | Enabled | Maintain full coding-agent utility for typical developer tasks; disable when command execution must be restricted. |
-| Auth persistence | Ephemeral auth per run | Persist in `secure-pi-agent` volume | One-time `/login` and seamless reuse across runs improves enterprise adoption and onboarding. |
+| Auth persistence | Ephemeral auth per run | Persist in `secure-pi-agent` volume (self-contained; no host `~/.pi` dependency) | One-time `/login` and seamless reuse across runs. |
 
 **Summary:** default posture is hardened and enterprise-appropriate for most teams, but not maximum isolation by default. For stricter zero-trust operation, enable the hardening toggles above (especially `PI_DOCKER_NETWORK_NONE=1`) and pair with org-level egress controls.

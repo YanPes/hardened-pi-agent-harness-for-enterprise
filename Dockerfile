@@ -15,7 +15,8 @@ RUN apt-get update \
 
 RUN useradd --create-home --uid 10001 --shell /bin/bash pi \
   && mkdir -p /opt/pi /opt/pi-secure /opt/pi-agent-seed /workspace /home/pi/.pi /home/pi/.pi/agent \
-  && chown -R pi:pi /opt/pi /opt/pi-secure /opt/pi-agent-seed /workspace /home/pi
+  && chown -R pi:pi /opt/pi /opt/pi-secure /opt/pi-agent-seed /workspace /home/pi \
+  && chmod 1777 /home/pi/.pi /home/pi/.pi/agent
 
 COPY config/settings.json /opt/pi-secure/settings.json
 COPY docker/entrypoint.sh /usr/local/bin/pi-secure-entrypoint
