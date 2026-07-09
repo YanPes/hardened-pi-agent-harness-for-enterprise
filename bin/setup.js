@@ -17,12 +17,14 @@ function detectShell() {
   const shell = process.env.SHELL || '';
   if (shell.includes('zsh')) return 'zsh';
   if (shell.includes('bash')) return 'bash';
+  if (shell.includes('fish')) return 'fish';
   return null;
 }
 
 function getRcFile(shellName) {
   if (shellName === 'zsh') return path.join(HOME, '.zshrc');
   if (shellName === 'bash') return path.join(HOME, '.bashrc');
+  if (shellName === 'fish') return path.join(HOME, '.config', 'fish', 'config.fish');
   return null;
 }
 
@@ -89,7 +91,7 @@ function updateShellRc() {
   const shellName = detectShell();
 
   if (!shellName) {
-    console.error('Unsupported shell. This setup currently supports bash and zsh only.');
+    console.error('Unsupported shell. This setup currently supports bash, zsh and fish only.');
     process.exit(1);
   }
 
@@ -194,6 +196,7 @@ function run() {
 
   console.log(`Installed secure-pi bundle to ${INSTALL_DIR}`);
   console.log(`Installed launcher to ${SHIM_PATH}`);
+  console.log('----------------------------------------------')
   console.log(`Restart shell or run: source ${rcFile}`);
   console.log('Then run: pi');
 }
