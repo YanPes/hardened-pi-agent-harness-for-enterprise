@@ -4,10 +4,10 @@ Hardened Docker wrapper for `pi` (<https://pi.dev/>) suitable for zero-trust ent
 
 ## What this setup enforces
 
-- **Repo scoping**: only one host repository is mounted to `/workspace`
-- **Read-only container root filesystem**: blocks writes outside mounted tmpfs + repo
+- **Repo scoping**: only one host repository is bind-mounted to `/workspace`
+- **Read-only container root filesystem**: blocks writes outside mounted writable locations (`/workspace`, `/pi-agent`, `/tmp`, `/run`)
 - **Runtime user configurable**: defaults to host-matching uid:gid in `run-secure-pi.sh` (for workspace write access); override with `PI_CONTAINER_USER=<uid:gid>` when needed
-- **Dropped Linux capabilities**: `--cap-drop ALL`
+- **Dropped Linux capabilities**: main Pi runtime container uses `--cap-drop ALL`
 - **No privilege escalation**: `no-new-privileges:true`
 - **Constrained resources**: CPU, memory, PID limits
 - **Telemetry and update checks disabled**:
