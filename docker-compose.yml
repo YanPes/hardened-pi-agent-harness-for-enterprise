@@ -24,6 +24,7 @@ services:
       PI_TELEMETRY: "0"
       PI_ALLOW_CONTEXT_FILES: "1"
       PI_DISABLE_BASH_TOOL: "0"
+      PI_DISABLE_EXTENSIONS: "0"
     volumes:
       - ${REPO_PATH:?Set REPO_PATH to an absolute repository path}:/workspace:rw
       - secure-pi-agent:/pi-agent
