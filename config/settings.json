@@ -1,7 +1,7 @@
 {
   "enableInstallTelemetry": false,
   "packages": ["git:github.com/makoit/pi-forgeflow"],
-  "extensions": [],
+  "extensions": ["/opt/pi-secure/extensions/ascii-header.ts"],
   "skills": [],
   "prompts": [],
   "themes": []

@@ -19,6 +19,7 @@ RUN useradd --create-home --uid 10001 --shell /bin/bash pi \
   && chmod 1777 /pi-agent
 
 COPY config/settings.json /opt/pi-secure/settings.json
+COPY config/extensions /opt/pi-secure/extensions
 COPY docker/entrypoint.sh /usr/local/bin/pi-secure-entrypoint
 RUN chmod 0755 /usr/local/bin/pi-secure-entrypoint
 
